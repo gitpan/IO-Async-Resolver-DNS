@@ -1,0 +1,83 @@
+NAME
+    "IO::Async::Resolver::DNS" - resolve DNS queries using "IO::Async"
+
+SYNOPSIS
+     use IO::Async::Loop;
+     use IO::Async::Resolver::DNS;
+ 
+     my $loop = IO::Async::Loop->new;
+     my $resolver = $loop->resolver;
+ 
+     $resolver->res_query(
+        dname => "cpan.org",
+        type  => "MX",
+        on_resolved => sub {
+           my ( $pkt ) = @_;
+ 
+           foreach my $mx ( $pkt->answer ) {
+              next unless $mx->type eq "MX";
+ 
+              printf "preference=%d exchange=%s\n",
+                 $mx->preference, $mx->exchange;
+           }
+           $loop->loop_stop;
+        },
+        on_error => sub { die "Cannot resolve - $_[-1]\n" },
+     );
+ 
+     $loop->loop_forever;
+
+DESCRIPTION
+    This module extends the IO::Async::Resolver class with extra methods and
+    resolver functions to perform DNS-specific resolver lookups. It does not
+    directly provide any methods or functions of its own.
+
+    These functions are provided for performing DNS-specific lookups, to
+    obtain "MX" or "SRV" records, for example. For regular name resolution,
+    the usual "getaddrinfo" and "getnameinfo" methods on the standard
+    "IO::Async::Resolver" should be used.
+
+    If Net::LibResolv is installed then it will be used for actually sending
+    and receiving DNS packets, in preference to a internally-constructed
+    Net::DNS::Resolver object. "Net::LibResolv" will be more efficient and
+    shares its implementation with the standard resolver used by the rest of
+    the system. "Net::DNS::Resolver" reimplements the logic itself, so it
+    may have differences in behaviour from that provided by libresolv. The
+    ability to use the latter is provided to allow for an XS-free dependency
+    chain, or for other situations where "Net::LibResolv" is not available.
+
+RESOLVER METHODS
+  $resolver->res_query( %params )
+    Performs a resolver query on the name, class and type, and invokes a
+    continuation when a result is obtained.
+
+    Takes the following named parameters:
+
+    dname => STRING
+            Domain name to look up
+
+    type => STRING
+            Name of the record type to look up (e.g. "MX")
+
+    class => STRING
+            Name of the record class to look up. Defaults to "IN" so
+            normally this argument is not required.
+
+    on_resolved => CODE
+            Continuation which is invoked after a successful lookup. Will be
+            passed a Net::DNS::Packet object containing the result.
+
+             $on_resolved->( $pkt )
+
+    on_error => CODE
+            Continuation which is invoked after a failed lookup.
+
+  $resolver->res_search( %params )
+    Performs a resolver query on the name, class and type, and invokes a
+    continuation when a result is obtained. Identical to "res_query" except
+    that it additionally implements the default domain name search
+    behaviour.
+
+AUTHOR
+    Paul Evans <leonerd@leonerd.org.uk>
+

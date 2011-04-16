@@ -1,0 +1,13 @@
+Build.PL
+Changes
+examples/lookup-MX.pl
+examples/lookup-SRV.pl
+lib/IO/Async/Resolver/DNS.pm
+MANIFEST			This list of files
+t/00use.t
+t/01dns.t
+t/99pod.t
+Makefile.PL
+README
+LICENSE
+META.yml
