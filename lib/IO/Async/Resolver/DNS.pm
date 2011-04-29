@@ -8,23 +8,14 @@ package IO::Async::Resolver::DNS;
 use strict;
 use warnings;
 
-our $VERSION = '0.01';
+our $VERSION = '0.02';
 
 use IO::Async::Resolver;
 
 use Carp;
 use Net::DNS;
 
-# We'd prefer to use libresolv to actually talk DNS as it'll be more efficient
-# and more standard to the OS
-BEGIN {
-   if( eval { require Net::LibResolv } ) {
-      Net::LibResolv->import(qw( res_query res_search ));
-
-      *class_name2id = sub { return Net::LibResolv->${\"NS_C_$_[0]"} };
-      *type_name2id  = sub { return Net::LibResolv->${\"NS_T_$_[0]"} };
-   }
-}
+use List::UtilsBy qw( weighted_shuffle_by );
 
 =head1 NAME
 
@@ -77,7 +68,101 @@ differences in behaviour from that provided by F<libresolv>. The ability to
 use the latter is provided to allow for an XS-free dependency chain, or for
 other situations where C<Net::LibResolv> is not available.
 
+=head2 Record Extraction
+
+If certain record type queries are made, extra information is returned to the
+C<on_resolved> continuation, containing the results from the DNS packet in a
+more useful form. This information will be in a list of extra values following
+the packet value
+
+ $on_resolved->( $pkt, @data )
+
+The type of the elements in C<@data> will depend on the DNS record query type:
+
+=over 4
+
+=item * MX
+
+The C<MX> records will be unpacked, in order of C<preference>, and returned in
+a list of HASH references. Each HASH reference will contain keys called
+C<exchange> and C<preference>. If the exchange domain name is included in the
+DNS C<additional> data, then the HASH reference will also include a key called
+C<address>, its value containing a list of C<A> and C<AAAA> record C<address>
+fields.
+
+ @data = ( { exchange   => "mail.example.com",
+             preference => 10,
+             address    => [ "10.0.0.1", "fd00:0:0:0:0:0:0:1" ] } );
+
+=item * SRV
+
+The C<SRV> records will be unpacked and sorted first by order of priority,
+then by a weighted shuffle by weight, and returned in a list of HASH
+references. Each HASH reference will contain keys called C<priority>,
+C<weight>, C<target> and C<port>. If the target domain name is included in the
+DNS C<additional> data, then the HASH reference will also contain a key called
+C<address>, its value containing a list of C<A> and C<AAAA> record C<address>
+fields.
+
+ @data = ( { priority => 10,
+             weight   => 10,
+             target   => "server1.service.example.com",
+             port     => 1234,
+             address  => [ "10.0.1.1" ] } );
+
+=back
+
 =cut
+
+sub _extract
+{
+   my ( $pkt, $type ) = @_;
+
+   if( $type eq "MX" ) {
+      my @mx;
+      my %additional;
+
+      foreach my $rr ( $pkt->additional ) {
+         push @{ $additional{$rr->name}{address} }, $rr->address if $rr->type eq "A" or $rr->type eq "AAAA";
+      }
+
+      foreach my $ans ( sort { $a->preference <=> $b->preference } grep { $_->type eq "MX" } $pkt->answer ) {
+         my $exchange = $ans->exchange;
+         push @mx, { exchange => $exchange, preference => $ans->preference };
+         $mx[-1]{address} = $additional{$exchange}{address} if $additional{$exchange}{address};
+      }
+      return ( $pkt, @mx );
+   }
+   elsif( $type eq "SRV" ) {
+      my @srv;
+      my %additional;
+
+      foreach my $rr ( $pkt->additional ) {
+         push @{ $additional{$rr->name}{address} }, $rr->address if $rr->type eq "A" or $rr->type eq "AAAA";
+      }
+
+      my %srv_by_prio;
+      # Need to work in two phases. Split by priority then shuffle within
+      foreach my $ans ( grep { $_->type eq "SRV" } $pkt->answer ) {
+         push @{ $srv_by_prio{ $ans->priority } }, $ans;
+      }
+
+      foreach my $prio ( sort { $a <=> $b } keys %srv_by_prio ) {
+         foreach my $ans ( weighted_shuffle_by { $_->weight || 1 } @{ $srv_by_prio{$prio} } ) {
+            my $target = $ans->target;
+            push @srv, { priority => $ans->priority,
+                         weight   => $ans->weight,
+                         target   => $target,
+                         port     => $ans->port };
+            $srv[-1]{address} = $additional{$target}{address} if $additional{$target}{address};
+         }
+      }
+      return ( $pkt, @srv );
+   }
+   else {
+      return ( $pkt );
+   }
+}
 
 =head1 RESOLVER METHODS
 
@@ -112,6 +197,13 @@ L<Net::DNS::Packet> object containing the result.
 
  $on_resolved->( $pkt )
 
+For certain query types, this continuation may also be passed extra data in a
+list after the C<$pkt>
+
+ $on_resolved->( $pkt, @data )
+
+See the B<Record Extraction> section above for more detail.
+
 =item on_error => CODE
 
 Continuation which is invoked after a failed lookup.
@@ -137,7 +229,8 @@ sub IO::Async::Resolver::res_query
       data => [ $dname, $class, $type ],
       on_resolved => sub {
          my ( $data ) = @_;
-         $on_resolved->( Net::DNS::Packet->new( \$data ) );
+         my $pkt = Net::DNS::Packet->new( \$data );
+         $on_resolved->( _extract( $pkt, $type ) );
       },
       on_error => $args{on_error},
    );
@@ -168,61 +261,27 @@ sub IO::Async::Resolver::res_search
       data => [ $dname, $class, $type ],
       on_resolved => sub {
          my ( $data ) = @_;
-         $on_resolved->( Net::DNS::Packet->new( \$data ) );
+         my $pkt = Net::DNS::Packet->new( \$data );
+         $on_resolved->( _extract( $pkt, $type ) );
       },
       on_error => $args{on_error},
    );
 }
 
-if( defined &res_query ) {
-   IO::Async::Resolver::register_resolver(
-      res_query => sub {
-         my ( $dname, $class, $type ) = @_;
-         return res_query( $dname, class_name2id($class), type_name2id($type) );
-      },
-   );
+# We'd prefer to use libresolv to actually talk DNS as it'll be more efficient
+# and more standard to the OS
+my @impls = qw(
+   LibResolvImpl
+   NetDNSImpl
+);
 
-   IO::Async::Resolver::register_resolver(
-      res_search => sub {
-         my ( $dname, $class, $type ) = @_;
-         return res_search( $dname, class_name2id($class), type_name2id($type) );
-      },
-   );
+while( !defined &res_query ) {
+   die "Unable to load an IO::Async::Resolver::DNS implementation\n" unless @impls;
+   eval { require "IO/Async/Resolver/DNS/" . shift(@impls) . ".pm" };
 }
-else {
-   # captured by resolver closures, used by child processes
-   my $res;
 
-   IO::Async::Resolver::register_resolver(
-      res_query => sub {
-         my ( $dname, $class, $type ) = @_;
-
-         $res ||= Net::DNS::Resolver->new;
-
-         my $pkt = $res->query( $dname, $type, $class ); # !order
-
-         # placate Net::DNS::Packet bug
-         $pkt->answer; $pkt->authority; $pkt->additional;
-
-         return $pkt->data;
-      },
-   );
-
-   IO::Async::Resolver::register_resolver(
-      res_search => sub {
-         my ( $dname, $class, $type ) = @_;
-
-         $res ||= Net::DNS::Resolver->new;
-
-         my $pkt = $res->search( $dname, $type, $class ); # !order
-
-         # placate Net::DNS::Packet bug
-         $pkt->answer; $pkt->authority; $pkt->additional;
-
-         return $pkt->data;
-      },
-   );
-}
+IO::Async::Resolver::register_resolver res_query  => \&res_query;
+IO::Async::Resolver::register_resolver res_search => \&res_search;
 
 =head1 AUTHOR
 

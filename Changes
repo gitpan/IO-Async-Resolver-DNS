@@ -1,4 +1,9 @@
 Revision history for IO-Async-Resolver-DNS
 
+0.02    CHANGES:
+         * Extract extra information from MX and SRV lookups
+         * Some attempt at error detection and reporting
+         * General code neatening and rearrangement
+
 0.01    First version, released on an unsuspecting world.
 

@@ -13,17 +13,21 @@ $resolver->res_query(
    dname => $ARGV[0],
    type  => "SRV",
    on_resolved => sub {
-      my ( $pkt ) = @_;
+      my ( $pkt, @srvs ) = @_;
 
-      foreach my $srv ( $pkt->answer ) {
-         next unless $srv->type eq "SRV";
-
+      foreach my $srv ( @srvs ) {
          printf "priority=%d weight=%d target=%s port=%d\n",
-            $srv->priority, $srv->weight, $srv->target, $srv->port;
+            @{$srv}{qw( priority weight target port )};
+         if( my $addresses = $srv->{address} ) {
+            printf "  address=%s\n", $_ for @$addresses;
+         }
+         else {
+            print "  address unknown\n";
+         }
       }
       $loop->loop_stop;
    },
-   on_error => sub { die "Cannot resolve - $_[-1]\n" },
+   on_error => sub { die "Cannot resolve - $_[-1]" },
 );
 
 $loop->loop_forever;

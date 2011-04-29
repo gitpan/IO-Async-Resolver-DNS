@@ -13,17 +13,21 @@ $resolver->res_query(
    dname => $ARGV[0],
    type  => "MX",
    on_resolved => sub {
-      my ( $pkt ) = @_;
+      my ( $pkt, @mxes ) = @_;
 
-      foreach my $mx ( $pkt->answer ) {
-         next unless $mx->type eq "MX";
-
+      foreach my $mx ( @mxes ) {
          printf "preference=%d exchange=%s\n",
-            $mx->preference, $mx->exchange;
+            $mx->{preference}, $mx->{exchange};
+         if( my $addresses = $mx->{address} ) {
+            printf "  address=%s\n", $_ for @$addresses;
+         }
+         else {
+            print "  address unknown\n";
+         }
       }
       $loop->loop_stop;
    },
-   on_error => sub { die "Cannot resolve - $_[-1]\n" },
+   on_error => sub { die "Cannot resolve - $_[-1]" },
 );
 
 $loop->loop_forever;

@@ -46,6 +46,46 @@ DESCRIPTION
     ability to use the latter is provided to allow for an XS-free dependency
     chain, or for other situations where "Net::LibResolv" is not available.
 
+  Record Extraction
+    If certain record type queries are made, extra information is returned
+    to the "on_resolved" continuation, containing the results from the DNS
+    packet in a more useful form. This information will be in a list of
+    extra values following the packet value
+
+     $on_resolved->( $pkt, @data )
+
+    The type of the elements in @data will depend on the DNS record query
+    type:
+
+    *   MX
+
+        The "MX" records will be unpacked, in order of "preference", and
+        returned in a list of HASH references. Each HASH reference will
+        contain keys called "exchange" and "preference". If the exchange
+        domain name is included in the DNS "additional" data, then the HASH
+        reference will also include a key called "address", its value
+        containing a list of "A" and "AAAA" record "address" fields.
+
+         @data = ( { exchange   => "mail.example.com",
+                     preference => 10,
+                     address    => [ "10.0.0.1", "fd00:0:0:0:0:0:0:1" ] } );
+
+    *   SRV
+
+        The "SRV" records will be unpacked and sorted first by order of
+        priority, then by a weighted shuffle by weight, and returned in a
+        list of HASH references. Each HASH reference will contain keys
+        called "priority", "weight", "target" and "port". If the target
+        domain name is included in the DNS "additional" data, then the HASH
+        reference will also contain a key called "address", its value
+        containing a list of "A" and "AAAA" record "address" fields.
+
+         @data = ( { priority => 10,
+                     weight   => 10,
+                     target   => "server1.service.example.com",
+                     port     => 1234,
+                     address  => [ "10.0.1.1" ] } );
+
 RESOLVER METHODS
   $resolver->res_query( %params )
     Performs a resolver query on the name, class and type, and invokes a
@@ -68,6 +108,13 @@ RESOLVER METHODS
             passed a Net::DNS::Packet object containing the result.
 
              $on_resolved->( $pkt )
+
+            For certain query types, this continuation may also be passed
+            extra data in a list after the $pkt
+
+             $on_resolved->( $pkt, @data )
+
+            See the Record Extraction section above for more detail.
 
     on_error => CODE
             Continuation which is invoked after a failed lookup.
