@@ -4,10 +4,8 @@ author:
   - 'Paul Evans <leonerd@leonerd.org.uk>'
 build_requires:
   Test::More: 0
-configure_requires:
-  Module::Build: 0
 dynamic_config: 1
-generated_by: 'Module::Build version 0.38, CPAN::Meta::Converter version 2.110930'
+generated_by: 'Module::Build version 0.4001, CPAN::Meta::Converter version 2.120630'
 license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
@@ -16,18 +14,18 @@ name: IO-Async-Resolver-DNS
 provides:
   IO::Async::Resolver::DNS:
     file: lib/IO/Async/Resolver/DNS.pm
-    version: 0.02
+    version: 0.03
   IO::Async::Resolver::DNS::LibResolvImpl:
     file: lib/IO/Async/Resolver/DNS/LibResolvImpl.pm
-    version: 0.02
+    version: 0.03
   IO::Async::Resolver::DNS::NetDNSImpl:
     file: lib/IO/Async/Resolver/DNS/NetDNSImpl.pm
-    version: 0.02
+    version: 0.03
 requires:
-  IO::Async::Loop: 0.34
+  IO::Async::Loop: 0.47
   IO::Async::Resolver: 0
   List::UtilsBy: 0.07
   Net::DNS: 0
 resources:
   license: http://dev.perl.org/licenses/
-version: 0.02
+version: 0.03

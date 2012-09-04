@@ -1,5 +1,9 @@
 Revision history for IO-Async-Resolver-DNS
 
+0.03    CHANGES:
+         * Extract extra information from A, AAAA and PTR lookups
+         * Updated for IO::Async 0.47 - ->run and ->stop methods
+
 0.02    CHANGES:
          * Extract extra information from MX and SRV lookups
          * Some attempt at error detection and reporting

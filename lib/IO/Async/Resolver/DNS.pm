@@ -1,14 +1,14 @@
 #  You may distribute under the terms of either the GNU General Public License
 #  or the Artistic License (the same terms as Perl itself)
 #
-#  (C) Paul Evans, 2011 -- leonerd@leonerd.org.uk
+#  (C) Paul Evans, 2011-2012 -- leonerd@leonerd.org.uk
 
 package IO::Async::Resolver::DNS;
 
 use strict;
 use warnings;
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 use IO::Async::Resolver;
 
@@ -41,12 +41,12 @@ C<IO::Async::Resolver::DNS> - resolve DNS queries using C<IO::Async>
           printf "preference=%d exchange=%s\n",
              $mx->preference, $mx->exchange;
        }
-       $loop->loop_stop;
+       $loop->stop;
     },
     on_error => sub { die "Cannot resolve - $_[-1]\n" },
  );
  
- $loop->loop_forever;
+ $loop->run;
 
 =head1 DESCRIPTION
 
@@ -81,6 +81,65 @@ The type of the elements in C<@data> will depend on the DNS record query type:
 
 =over 4
 
+=cut
+
+sub _extract
+{
+   my ( $pkt, $type ) = @_;
+
+   my $code = __PACKAGE__->can( "_extract_$type" ) or return ( $pkt );
+
+   return $code->( $pkt );
+}
+
+=item * A and AAAA
+
+The C<A> or C<AAAA> records will be unpacked and returned in a list of
+strings.
+
+ @data = ( "10.0.0.1",
+           "10.0.0.2" );
+
+ @data = ( "fd00:0:0:0:0:0:0:1" );
+
+=cut
+
+*_extract_A    = \&_extract_addresses;
+*_extract_AAAA = \&_extract_addresses;
+sub _extract_addresses
+{
+   my ( $pkt ) = @_;
+
+   my @addrs;
+
+   foreach my $rr ( $pkt->answer ) {
+      push @addrs, $rr->address if $rr->type eq "A" or $rr->type eq "AAAA";
+   }
+
+   return ( $pkt, @addrs );
+}
+
+=item * PTR
+
+The C<PTR> records will be unpacked and returned in a list of domain names.
+
+ @data = ( "foo.example.com" );
+
+=cut
+
+sub _extract_PTR
+{
+   my ( $pkt ) = @_;
+
+   my @names;
+
+   foreach my $rr ( $pkt->answer ) {
+      push @names, $rr->ptrdname if $rr->type eq "PTR";
+   }
+
+   return ( $pkt, @names );
+}
+
 =item * MX
 
 The C<MX> records will be unpacked, in order of C<preference>, and returned in
@@ -93,6 +152,27 @@ fields.
  @data = ( { exchange   => "mail.example.com",
              preference => 10,
              address    => [ "10.0.0.1", "fd00:0:0:0:0:0:0:1" ] } );
+
+=cut
+
+sub _extract_MX
+{
+   my ( $pkt ) = @_;
+
+   my @mx;
+   my %additional;
+
+   foreach my $rr ( $pkt->additional ) {
+      push @{ $additional{$rr->name}{address} }, $rr->address if $rr->type eq "A" or $rr->type eq "AAAA";
+   }
+
+   foreach my $ans ( sort { $a->preference <=> $b->preference } grep { $_->type eq "MX" } $pkt->answer ) {
+      my $exchange = $ans->exchange;
+      push @mx, { exchange => $exchange, preference => $ans->preference };
+      $mx[-1]{address} = $additional{$exchange}{address} if $additional{$exchange}{address};
+   }
+   return ( $pkt, @mx );
+}
 
 =item * SRV
 
@@ -110,59 +190,41 @@ fields.
              port     => 1234,
              address  => [ "10.0.1.1" ] } );
 
+=cut
+
+sub _extract_SRV
+{
+   my ( $pkt ) = @_;
+
+   my @srv;
+   my %additional;
+
+   foreach my $rr ( $pkt->additional ) {
+      push @{ $additional{$rr->name}{address} }, $rr->address if $rr->type eq "A" or $rr->type eq "AAAA";
+   }
+
+   my %srv_by_prio;
+   # Need to work in two phases. Split by priority then shuffle within
+   foreach my $ans ( grep { $_->type eq "SRV" } $pkt->answer ) {
+      push @{ $srv_by_prio{ $ans->priority } }, $ans;
+   }
+
+   foreach my $prio ( sort { $a <=> $b } keys %srv_by_prio ) {
+      foreach my $ans ( weighted_shuffle_by { $_->weight || 1 } @{ $srv_by_prio{$prio} } ) {
+         my $target = $ans->target;
+         push @srv, { priority => $ans->priority,
+            weight   => $ans->weight,
+            target   => $target,
+            port     => $ans->port };
+         $srv[-1]{address} = $additional{$target}{address} if $additional{$target}{address};
+      }
+   }
+   return ( $pkt, @srv );
+}
+
 =back
 
 =cut
-
-sub _extract
-{
-   my ( $pkt, $type ) = @_;
-
-   if( $type eq "MX" ) {
-      my @mx;
-      my %additional;
-
-      foreach my $rr ( $pkt->additional ) {
-         push @{ $additional{$rr->name}{address} }, $rr->address if $rr->type eq "A" or $rr->type eq "AAAA";
-      }
-
-      foreach my $ans ( sort { $a->preference <=> $b->preference } grep { $_->type eq "MX" } $pkt->answer ) {
-         my $exchange = $ans->exchange;
-         push @mx, { exchange => $exchange, preference => $ans->preference };
-         $mx[-1]{address} = $additional{$exchange}{address} if $additional{$exchange}{address};
-      }
-      return ( $pkt, @mx );
-   }
-   elsif( $type eq "SRV" ) {
-      my @srv;
-      my %additional;
-
-      foreach my $rr ( $pkt->additional ) {
-         push @{ $additional{$rr->name}{address} }, $rr->address if $rr->type eq "A" or $rr->type eq "AAAA";
-      }
-
-      my %srv_by_prio;
-      # Need to work in two phases. Split by priority then shuffle within
-      foreach my $ans ( grep { $_->type eq "SRV" } $pkt->answer ) {
-         push @{ $srv_by_prio{ $ans->priority } }, $ans;
-      }
-
-      foreach my $prio ( sort { $a <=> $b } keys %srv_by_prio ) {
-         foreach my $ans ( weighted_shuffle_by { $_->weight || 1 } @{ $srv_by_prio{$prio} } ) {
-            my $target = $ans->target;
-            push @srv, { priority => $ans->priority,
-                         weight   => $ans->weight,
-                         target   => $target,
-                         port     => $ans->port };
-            $srv[-1]{address} = $additional{$target}{address} if $additional{$target}{address};
-         }
-      }
-      return ( $pkt, @srv );
-   }
-   else {
-      return ( $pkt );
-   }
-}
 
 =head1 RESOLVER METHODS
 

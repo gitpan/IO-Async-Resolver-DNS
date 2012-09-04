@@ -6,7 +6,9 @@ use warnings;
 use Test::More;
 use Net::DNS::Packet;
 
-eval { require Net::LibResolv } or plan skip_all => "Missing Net::LibResolv";
+eval { require Net::LibResolv and Net::LibResolv->VERSION(0.03) } or
+   plan skip_all => "Missing Net::LibResolv";
+
 plan tests => 6;
 
 require IO::Async::Resolver::DNS::LibResolvImpl;

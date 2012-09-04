@@ -5,12 +5,9 @@ use Module::Build;
 
 my $build = Module::Build->new(
    module_name => 'IO::Async::Resolver::DNS',
-   configure_requires => {
-      'Module::Build' => 0,
-   },
    requires => {
       'IO::Async::Resolver' => 0,
-      'IO::Async::Loop' => '0.34', # ->resolver method
+      'IO::Async::Loop' => '0.47', # ->resolver method, ->run
       'List::UtilsBy' => '0.07',
       'Net::DNS' => 0,
    },
@@ -20,6 +17,7 @@ my $build = Module::Build->new(
    build_requires => {
       'Test::More' => 0,
    },
+   auto_configure_requires => 0, # Don't add M::B to configure_requires
    license => 'perl',
    create_makefile_pl => 'traditional',
    create_license => 1,

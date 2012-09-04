@@ -25,9 +25,9 @@ $resolver->res_query(
             print "  address unknown\n";
          }
       }
-      $loop->loop_stop;
+      $loop->stop;
    },
    on_error => sub { die "Cannot resolve - $_[-1]" },
 );
 
-$loop->loop_forever;
+$loop->run;

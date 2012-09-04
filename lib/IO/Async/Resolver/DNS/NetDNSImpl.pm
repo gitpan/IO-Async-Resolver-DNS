@@ -8,7 +8,7 @@ package IO::Async::Resolver::DNS::NetDNSImpl;
 use strict;
 use warnings;
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 my $res;
 sub _resolve

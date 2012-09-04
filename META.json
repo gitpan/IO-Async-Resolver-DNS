@@ -4,7 +4,7 @@
       "Paul Evans <leonerd@leonerd.org.uk>"
    ],
    "dynamic_config" : 1,
-   "generated_by" : "Module::Build version 0.38, CPAN::Meta::Converter version 2.110930",
+   "generated_by" : "Module::Build version 0.4001, CPAN::Meta::Converter version 2.120630",
    "license" : [
       "perl_5"
    ],
@@ -16,35 +16,30 @@
    "prereqs" : {
       "build" : {
          "requires" : {
-            "Test::More" : 0
-         }
-      },
-      "configure" : {
-         "requires" : {
-            "Module::Build" : 0
+            "Test::More" : "0"
          }
       },
       "runtime" : {
          "requires" : {
-            "IO::Async::Loop" : "0.34",
-            "IO::Async::Resolver" : 0,
+            "IO::Async::Loop" : "0.47",
+            "IO::Async::Resolver" : "0",
             "List::UtilsBy" : "0.07",
-            "Net::DNS" : 0
+            "Net::DNS" : "0"
          }
       }
    },
    "provides" : {
       "IO::Async::Resolver::DNS" : {
          "file" : "lib/IO/Async/Resolver/DNS.pm",
-         "version" : "0.02"
+         "version" : "0.03"
       },
       "IO::Async::Resolver::DNS::LibResolvImpl" : {
          "file" : "lib/IO/Async/Resolver/DNS/LibResolvImpl.pm",
-         "version" : "0.02"
+         "version" : "0.03"
       },
       "IO::Async::Resolver::DNS::NetDNSImpl" : {
          "file" : "lib/IO/Async/Resolver/DNS/NetDNSImpl.pm",
-         "version" : "0.02"
+         "version" : "0.03"
       }
    },
    "release_status" : "stable",
@@ -53,5 +48,5 @@
          "http://dev.perl.org/licenses/"
       ]
    },
-   "version" : "0.02"
+   "version" : "0.03"
 }
