@@ -1,5 +1,9 @@
 Revision history for IO-Async-Resolver-DNS
 
+0.04    2013/09/01 01:18:37
+        [CHANGES]
+         * Needs 'use Net::DNS::Resolver'
+
 0.03    CHANGES:
          * Extract extra information from A, AAAA and PTR lookups
          * Updated for IO::Async 0.47 - ->run and ->stop methods

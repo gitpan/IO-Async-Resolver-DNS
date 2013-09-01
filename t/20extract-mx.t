@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 2;
+use Test::More;
 
 use IO::Async::Test;
 use IO::Async::Loop;
@@ -50,3 +50,5 @@ is_deeply( \@mx,
      { exchange   => "mail.backuphost.net",
        preference => 20 } ],
    'Sorted and processed MX records' );
+
+done_testing;

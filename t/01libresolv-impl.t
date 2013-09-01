@@ -9,8 +9,6 @@ use Net::DNS::Packet;
 eval { require Net::LibResolv and Net::LibResolv->VERSION(0.03) } or
    plan skip_all => "Missing Net::LibResolv";
 
-plan tests => 6;
-
 require IO::Async::Resolver::DNS::LibResolvImpl;
 
 my $data = IO::Async::Resolver::DNS::res_query( "www.cpan.org", "IN", "A" );
@@ -27,3 +25,5 @@ is( ($pkt->question)[0]->qtype,  "A",            '$pkt qtype' );
 
 ok( defined IO::Async::Resolver::DNS::res_search( "www.cpan.org", "IN", "A" ),
     'res_search' );
+
+done_testing;

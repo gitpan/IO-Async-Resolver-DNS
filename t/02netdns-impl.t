@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 6;
+use Test::More;
 use Net::DNS::Packet;
 
 require IO::Async::Resolver::DNS::NetDNSImpl;
@@ -22,3 +22,5 @@ is( ($pkt->question)[0]->qtype,  "A",            '$pkt qtype' );
 
 ok( defined IO::Async::Resolver::DNS::res_search( "www.cpan.org", "IN", "A" ),
     'res_search' );
+
+done_testing;

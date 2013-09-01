@@ -4,7 +4,7 @@
       "Paul Evans <leonerd@leonerd.org.uk>"
    ],
    "dynamic_config" : 1,
-   "generated_by" : "Module::Build version 0.4001, CPAN::Meta::Converter version 2.120630",
+   "generated_by" : "Module::Build version 0.4005, CPAN::Meta::Converter version 2.120921",
    "license" : [
       "perl_5"
    ],
@@ -16,7 +16,7 @@
    "prereqs" : {
       "build" : {
          "requires" : {
-            "Test::More" : "0"
+            "Test::More" : "0.88"
          }
       },
       "runtime" : {
@@ -31,15 +31,15 @@
    "provides" : {
       "IO::Async::Resolver::DNS" : {
          "file" : "lib/IO/Async/Resolver/DNS.pm",
-         "version" : "0.03"
+         "version" : "0.04"
       },
       "IO::Async::Resolver::DNS::LibResolvImpl" : {
          "file" : "lib/IO/Async/Resolver/DNS/LibResolvImpl.pm",
-         "version" : "0.03"
+         "version" : "0.04"
       },
       "IO::Async::Resolver::DNS::NetDNSImpl" : {
          "file" : "lib/IO/Async/Resolver/DNS/NetDNSImpl.pm",
-         "version" : "0.03"
+         "version" : "0.04"
       }
    },
    "release_status" : "stable",
@@ -48,5 +48,5 @@
          "http://dev.perl.org/licenses/"
       ]
    },
-   "version" : "0.03"
+   "version" : "0.04"
 }

@@ -3,9 +3,9 @@ abstract: 'resolve DNS queries using C<IO::Async>'
 author:
   - 'Paul Evans <leonerd@leonerd.org.uk>'
 build_requires:
-  Test::More: 0
+  Test::More: 0.88
 dynamic_config: 1
-generated_by: 'Module::Build version 0.4001, CPAN::Meta::Converter version 2.120630'
+generated_by: 'Module::Build version 0.4005, CPAN::Meta::Converter version 2.120921'
 license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
@@ -14,13 +14,13 @@ name: IO-Async-Resolver-DNS
 provides:
   IO::Async::Resolver::DNS:
     file: lib/IO/Async/Resolver/DNS.pm
-    version: 0.03
+    version: 0.04
   IO::Async::Resolver::DNS::LibResolvImpl:
     file: lib/IO/Async/Resolver/DNS/LibResolvImpl.pm
-    version: 0.03
+    version: 0.04
   IO::Async::Resolver::DNS::NetDNSImpl:
     file: lib/IO/Async/Resolver/DNS/NetDNSImpl.pm
-    version: 0.03
+    version: 0.04
 requires:
   IO::Async::Loop: 0.47
   IO::Async::Resolver: 0
@@ -28,4 +28,4 @@ requires:
   Net::DNS: 0
 resources:
   license: http://dev.perl.org/licenses/
-version: 0.03
+version: 0.04

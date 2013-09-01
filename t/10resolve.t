@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 10;
+use Test::More;
 
 use IO::Async::Test;
 use IO::Async::Loop;
@@ -72,3 +72,5 @@ my $resolver = $loop->resolver;
    is( $answers[0]->type, "A", '$answer[0] is A record' );
    is( $answers[0]->address, "10.0.0.1", '$answer[0] address is 10.0.0.1' );
 }
+
+done_testing;

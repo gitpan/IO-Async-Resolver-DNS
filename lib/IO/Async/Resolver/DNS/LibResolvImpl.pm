@@ -8,7 +8,7 @@ package IO::Async::Resolver::DNS::LibResolvImpl;
 use strict;
 use warnings;
 
-our $VERSION = '0.03';
+our $VERSION = '0.04';
 
 use Net::LibResolv 0.03 qw( res_query res_search class_name2value type_name2value $h_errno );
 

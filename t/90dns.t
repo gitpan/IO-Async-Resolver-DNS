@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 6;
+use Test::More;
 
 use IO::Async::Test;
 use IO::Async::Loop;
@@ -57,3 +57,5 @@ my $resolver = $loop->resolver;
    cmp_ok( scalar $result->answer, '>=', 1, '$result from ->res_search contains some answers' ) or
       diag( $result->string );
 }
+
+done_testing;

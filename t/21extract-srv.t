@@ -3,7 +3,7 @@
 use strict;
 use warnings;
 
-use Test::More tests => 5;
+use Test::More;
 
 use IO::Async::Test;
 use IO::Async::Loop;
@@ -83,3 +83,5 @@ is_deeply( $srv[4],
      target    => "gopher.backuphost.com",
      port      => 70 },
    'Last returned SRV record' );
+
+done_testing;
